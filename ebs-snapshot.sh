@@ -5,8 +5,8 @@ set -o pipefail
 
 # Grab stuff from the ec2 metadata
 AWS_ACCESS_KEY_ID=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/lib-amz-default | grep "AccessKeyId" | cut -d ":" -f 2 | tr "," " " | xargs)
-AWS_SECRET_ACCESS_KEY$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/lib-amz-default | grep "SecretAccessKey" | cut -d ":" -f 2 | tr "," " " | xargs)
-AWS_SECURITY_TOKEN$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/lib-amz-default | grep "Token" | cut -d ":" -f 2 | tr "," " " | xargs)
+AWS_SECRET_ACCESS_KEY=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/lib-amz-default | grep "SecretAccessKey" | cut -d ":" -f 2 | tr "," " " | xargs)
+AWS_SECURITY_TOKEN=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/lib-amz-default | grep "Token" | cut -d ":" -f 2 | tr "," " " | xargs)
 
 export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
 export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
@@ -33,8 +33,8 @@ export AWS_SECURITY_TOKEN=$AWS_SECURITY_TOKEN
 ## Variable Declartions ##
 
 # Get Instance Details
-instance_id$(curl -s http://169.254.169.254/latest/meta-data/instance-id | xargs)
-region$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed -e 's/\([1-9]\).$/\1/g' | xargs)
+instance_id=$(curl -s http://169.254.169.254/latest/meta-data/instance-id | xargs)
+region=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed -e 's/\([1-9]\).$/\1/g' | xargs)
 
 # Set Logging Options
 logfile="/var/log/ebs-snapshot.log"
