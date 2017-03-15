@@ -41,8 +41,8 @@ export AWS_SECURITY_TOKEN=$AWS_SECURITY_TOKEN
 ## Variable Declartions ##
 
 # Get Instance Details
-instance_id=$(curl -s ${latest_metadata}instance-id | xargs)
-region=$(curl -s ${latest_metadata}placement/availability-zone | sed -e 's/\([1-9]\).$/\1/g' | xargs)
+instance_id=$(curl -s ${latest_metadata}instance-id)
+region=$(curl -s ${latest_metadata}placement/availability-zone | sed -e 's/\([1-9]\).$/\1/g')
 
 # Set Logging Options
 logfile="/var/log/ebs-snapshot.log"
