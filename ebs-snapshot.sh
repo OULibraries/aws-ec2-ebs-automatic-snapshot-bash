@@ -3,6 +3,25 @@ export PATH=$PATH:/usr/local/bin/:/usr/bin
 # Exit if a pipeline results in an error.
 set -o pipefail
 
+if [ -z "$1" ]; then
+  retention_days="7"
+elif [ "$1" == "-h" ]; then
+  cat <<USAGE
+ebs-snapshot.sh snapshots all attached volumes and deletes old snapshots.
+Usage: ebs-snapshot.sh \$retention_days
+\$retention_days   retention period in days. Defaults to 7.
+USAGE
+  exit 0;
+elif  [ "$1" -eq "$1" ] 2>/dev/null; then
+  retention_days="$1"
+else
+  cat <<BADARG
+Retention period must be specified as a number or left unspecified for
+a default value of 7.
+BADARG
+  exit 1;
+fi
+
 # Grab stuff from the ec2 metadata
 # This URI is the same everywhere. Keep it DRY.
 latest_metadata=http://169.254.169.254/latest/meta-data/
@@ -48,8 +67,6 @@ region=$(curl -s ${latest_metadata}placement/availability-zone | sed -e 's/\([1-
 logfile="/var/log/ebs-snapshot.log"
 logfile_max_lines="5000"
 
-# How many days do you wish to retain backups for? Default: 7 days
-retention_days="7"
 retention_date_in_seconds=$(date +%s --date "$retention_days days ago")
 
 
