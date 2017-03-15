@@ -1,10 +1,34 @@
 #!/usr/bin/env bash
 export PATH=$PATH:/usr/local/bin/:/usr/bin
+
 # Exit if a pipeline results in an error.
 set -o pipefail
 
+## Automatic EBS Volume Snapshot Creation & Clean-Up Script
+#
+# Written by Casey Labs Inc. (https://www.caseylabs.com)
+# Contact us for all your Amazon Web Services Consulting needs!
+# Script Github repo: https://github.com/CaseyLabs/aws-ec2-ebs-automatic-snapshot-bash
+#
+# Additonal credits: Log function by Alan Franzoni; Pre-req check by Colin Johnson
+#
+# PURPOSE: This Bash script can be used to take automatic snapshots of your Linux EC2 instance. Script process:
+# - Determine the instance ID of the EC2 server on which the script runs
+# - Gather a list of all volume IDs attached to that instance
+# - Take a snapshot of each attached volume
+# - The script will then delete all associated snapshots taken by the script that are older than 7 days
+#
+# DISCLAIMER: This script deletes snapshots (though only the ones that it creates). 
+# Make sure that you understand how the script works. No responsibility accepted in event of accidental data loss.
+#
+
+## Variable Declartions ##
+
+# retention days defaults to 7.
 if [ -z "$1" ]; then
   retention_days="7"
+
+# help message.
 elif [ "$1" == "-h" ]; then
   cat <<USAGE
 ebs-snapshot.sh snapshots all attached volumes and deletes old snapshots.
@@ -12,8 +36,12 @@ Usage: ebs-snapshot.sh \$retention_days
 \$retention_days   retention period in days. Defaults to 7.
 USAGE
   exit 0;
+
+# Set retention days to 1st arg if it's a number.
 elif  [ "$1" -eq "$1" ] 2>/dev/null; then
   retention_days="$1"
+
+# Error out if we don't know what to do with the arg
 else
   cat <<BADARG
 Retention period must be specified as a number or left unspecified for
@@ -39,26 +67,6 @@ export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
 export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 export AWS_SECURITY_TOKEN=$AWS_SECURITY_TOKEN
 
-## Automatic EBS Volume Snapshot Creation & Clean-Up Script
-#
-# Written by Casey Labs Inc. (https://www.caseylabs.com)
-# Contact us for all your Amazon Web Services Consulting needs!
-# Script Github repo: https://github.com/CaseyLabs/aws-ec2-ebs-automatic-snapshot-bash
-#
-# Additonal credits: Log function by Alan Franzoni; Pre-req check by Colin Johnson
-#
-# PURPOSE: This Bash script can be used to take automatic snapshots of your Linux EC2 instance. Script process:
-# - Determine the instance ID of the EC2 server on which the script runs
-# - Gather a list of all volume IDs attached to that instance
-# - Take a snapshot of each attached volume
-# - The script will then delete all associated snapshots taken by the script that are older than 7 days
-#
-# DISCLAIMER: This script deletes snapshots (though only the ones that it creates). 
-# Make sure that you understand how the script works. No responsibility accepted in event of accidental data loss.
-#
-
-## Variable Declartions ##
-
 # Get Instance Details
 instance_id=$(curl -s ${latest_metadata}instance-id)
 region=$(curl -s ${latest_metadata}placement/availability-zone | sed -e 's/\([1-9]\).$/\1/g')
@@ -68,7 +76,6 @@ logfile="/var/log/ebs-snapshot.log"
 logfile_max_lines="5000"
 
 retention_date_in_seconds=$(date +%s --date "$retention_days days ago")
-
 
 ## Function Declarations ##
 
