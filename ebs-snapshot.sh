@@ -4,10 +4,18 @@ export PATH=$PATH:/usr/local/bin/:/usr/bin
 set -o pipefail
 
 # Grab stuff from the ec2 metadata
-AWS_ACCESS_KEY_ID=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/lib-amz-default | grep "AccessKeyId" | cut -d ":" -f 2 | tr "," " " | xargs)
-AWS_SECRET_ACCESS_KEY=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/lib-amz-default | grep "SecretAccessKey" | cut -d ":" -f 2 | tr "," " " | xargs)
-AWS_SECURITY_TOKEN=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/lib-amz-default | grep "Token" | cut -d ":" -f 2 | tr "," " " | xargs)
+# This URI is the same everywhere. Keep it DRY.
+latest_metadata=http://169.254.169.254/latest/meta-data/
 
+# Fetch the machine role of this instance.
+iam_role=$(curl -s ${latest_metadata}iam/security-credentials/)
+
+# Set environment vars for awscli
+AWS_ACCESS_KEY_ID=$(curl -s ${latest_metadata}iam/security-credentials/${iam_role} | jq --raw-output '.AccessKeyId')
+AWS_SECRET_ACCESS_KEY=$(curl -s ${latest_metadata}iam/security-credentials/${iam_role} | jq --raw-output '.SecretAccessKey')
+AWS_SECURITY_TOKEN=$(curl -s ${latest_metadata}iam/security-credentials/${iam_role} | jq --raw-output '.Token')
+
+# Export them
 export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
 export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 export AWS_SECURITY_TOKEN=$AWS_SECURITY_TOKEN
@@ -33,8 +41,8 @@ export AWS_SECURITY_TOKEN=$AWS_SECURITY_TOKEN
 ## Variable Declartions ##
 
 # Get Instance Details
-instance_id=$(curl -s http://169.254.169.254/latest/meta-data/instance-id | xargs)
-region=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed -e 's/\([1-9]\).$/\1/g' | xargs)
+instance_id=$(curl -s ${latest_metadata}instance-id | xargs)
+region=$(curl -s ${latest_metadata}placement/availability-zone | sed -e 's/\([1-9]\).$/\1/g' | xargs)
 
 # Set Logging Options
 logfile="/var/log/ebs-snapshot.log"
@@ -64,7 +72,7 @@ log() {
 
 # Function: Confirm that the AWS CLI and related tools are installed.
 prerequisite_check() {
-	for prerequisite in aws; do
+	for prerequisite in aws jq; do
 		hash $prerequisite &> /dev/null
 		if [[ $? == 1 ]]; then
 			echo "In order to use this script, the executable \"$prerequisite\" must be installed." 1>&2; exit 70
