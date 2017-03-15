@@ -1,10 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
 export PATH=$PATH:/usr/local/bin/:/usr/bin
-
-# Safety feature: exit script if error is returned, or if variables not set.
 # Exit if a pipeline results in an error.
-set -ue
 set -o pipefail
+
+# Grab stuff from the ec2 metadata
+AWS_ACCESS_KEY_ID=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/lib-amz-default | grep "AccessKeyId" | cut -d ":" -f 2 | tr "," " " | xargs)
+AWS_SECRET_ACCESS_KEY$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/lib-amz-default | grep "SecretAccessKey" | cut -d ":" -f 2 | tr "," " " | xargs)
+AWS_SECURITY_TOKEN$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/lib-amz-default | grep "Token" | cut -d ":" -f 2 | tr "," " " | xargs)
+
+export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+export AWS_SECURITY_TOKEN=$AWS_SECURITY_TOKEN
 
 ## Automatic EBS Volume Snapshot Creation & Clean-Up Script
 #
@@ -24,12 +30,11 @@ set -o pipefail
 # Make sure that you understand how the script works. No responsibility accepted in event of accidental data loss.
 #
 
-
 ## Variable Declartions ##
 
 # Get Instance Details
-instance_id=$(wget -q -O- http://169.254.169.254/latest/meta-data/instance-id)
-region=$(wget -q -O- http://169.254.169.254/latest/meta-data/placement/availability-zone | sed -e 's/\([1-9]\).$/\1/g')
+instance_id$(curl -s http://169.254.169.254/latest/meta-data/instance-id | xargs)
+region$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed -e 's/\([1-9]\).$/\1/g' | xargs)
 
 # Set Logging Options
 logfile="/var/log/ebs-snapshot.log"
@@ -59,7 +64,7 @@ log() {
 
 # Function: Confirm that the AWS CLI and related tools are installed.
 prerequisite_check() {
-	for prerequisite in aws wget; do
+	for prerequisite in aws; do
 		hash $prerequisite &> /dev/null
 		if [[ $? == 1 ]]; then
 			echo "In order to use this script, the executable \"$prerequisite\" must be installed." 1>&2; exit 70
